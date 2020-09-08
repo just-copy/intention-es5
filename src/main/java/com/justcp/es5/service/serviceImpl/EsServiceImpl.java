@@ -1,15 +1,27 @@
 package com.justcp.es5.service.serviceImpl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.justcp.es5.config.EsBulkProcessorConfig;
 import com.justcp.es5.service.EsService;
 import lombok.extern.slf4j.Slf4j;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.DeleteByQueryAction;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -23,44 +35,70 @@ public class EsServiceImpl implements EsService {
     @Resource
     private TransportClient client;
 
+    @Value("${research.es7.es.index.devIndex}")
+    private String devIndex;
+
+    @Value("${research.es7.es.type.devType}")
+    private String devType;
+
     @Override
     public void insertBatch() {
 
-        BulkProcessor bulkProcessor = EsBulkProcessorConfig.bulkProcessor(client);
-        int count = 0;
-        while ( count <= 10000000) {
-            count ++;
-            XContentBuilder xContentBuilder = null;
+        try {
+            BulkProcessor bulkProcessor = EsBulkProcessorConfig.bulkProcessor(client);
+            int count = 0;
+            //把导出的结果以JSON的格式写到文件里
+            for (int i = 0; i < 20; i++) {
+                BufferedReader br = new BufferedReader(new FileReader("/Users/lilong/logs/log.json"));
+                String json = null;
+                while ((json = br.readLine()) != null) {
+                    JSONObject jsonObject =JSONObject.parseObject(json);
+                    jsonObject.put("instanceId", count / 1000 + 1);
+                    bulkProcessor.add(new IndexRequest(devIndex, devType).source(jsonObject.toJSONString(), XContentType.JSON));
+                    //每一千条提交一次
+                    count++;
+                }
+                br.close();
+            }
+
+            bulkProcessor.flush();
             try {
-                xContentBuilder = jsonBuilder()
-                        .startObject()
-                        .field("account", "account" + count)
-                        .field("path", "path" + count)
-                        .field("card", "card" + count)
-                        .field("mid", "mid" + count)
-                        .field("pid", "pid" + count)
-                        .field("request_time", new Date())
-                        .field("status", "status" + count)
-                        .field("instanceId",count)
-                        .endObject();
-            } catch (IOException e) {
+                bulkProcessor.awaitClose(20, TimeUnit.SECONDS);
+            } catch (Exception e) {
                 e.printStackTrace();
             }
-            bulkProcessor.add(new IndexRequest("intention_dev","query",count+"_1")
-                    .source(xContentBuilder));
-            bulkProcessor.add(new IndexRequest("intention_dev","query",count+"_2")
-                    .source(xContentBuilder));
-            bulkProcessor.add(new IndexRequest("intention_dev","query",count+"_3")
-                    .source(xContentBuilder));
-            if (count % 5000 == 0) {
-                log.info(count / 5000 + "次");
-            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        bulkProcessor.flush();
+
+    }
+
+    @Override
+    public void deleteByQuery() {
         try {
-            bulkProcessor.awaitClose(60, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            System.out.println("关闭异常");
+            QueryBuilder qb = QueryBuilders.boolQuery()
+                    .filter(QueryBuilders.typeQuery(devType))
+                    .mustNot(QueryBuilders.existsQuery("instanceIds"));
+            BulkByScrollResponse response = DeleteByQueryAction.INSTANCE.newRequestBuilder(client)
+                    .source(devIndex)
+                    .filter(qb)
+                    .get();
+            // 返回成功删除条数
+            TimeValue timeTaken = response.getTook();
+            boolean timedOut = response.isTimedOut();
+            long totalDocs = response.getStatus().getTotal();
+            long deletedDocs = response.getDeleted();
+            long batches = response.getBatches();
+            long noops = response.getNoops();
+            log.info("timeTaken:" + timeTaken);
+            log.info("timedOut:" + timedOut);
+            log.info("totalDocs:" + totalDocs);
+            log.info("deletedDocs:" + deletedDocs);
+            log.info("batches:" + batches);
+            log.info("noops:" + noops);
+            log.info("timeTaken:" + timeTaken);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
     }

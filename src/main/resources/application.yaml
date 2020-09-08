@@ -1,0 +1,16 @@
+server:
+  port: 8082
+logging:
+  config: classpath:logback.xml
+
+research:
+  es5:
+    es:
+      servers: 172.18.18.15
+      port: 8286
+      cluster:
+        name: es_5.6.8
+      index:
+        devIndex: index_dev
+      type:
+        devType: query
