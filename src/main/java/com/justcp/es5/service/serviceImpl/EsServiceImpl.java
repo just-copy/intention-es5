@@ -35,10 +35,10 @@ public class EsServiceImpl implements EsService {
     @Resource
     private TransportClient client;
 
-    @Value("${research.es7.es.index.devIndex}")
+    @Value("${research.es5.es.index.devIndex}")
     private String devIndex;
 
-    @Value("${research.es7.es.type.devType}")
+    @Value("${research.es5.es.type.devType}")
     private String devType;
 
     @Override

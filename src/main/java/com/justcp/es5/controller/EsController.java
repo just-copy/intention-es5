@@ -4,6 +4,7 @@ import com.justcp.es5.service.EsService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,7 +17,7 @@ public class EsController {
     @Resource
     private EsService esService;
 
-    @GetMapping(value = "/insert")
+    @PutMapping(value = "/insert")
     public void insertEs() {
         esService.insertBatch();
     }

@@ -13,4 +13,4 @@ research:
       index:
         devIndex: index_dev
       type:
-        devType: query
+        devType: doc
