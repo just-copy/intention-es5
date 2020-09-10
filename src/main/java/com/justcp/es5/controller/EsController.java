@@ -1,5 +1,6 @@
 package com.justcp.es5.controller;
 
+import com.justcp.es5.service.EsQueryService;
 import com.justcp.es5.service.EsService;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,6 +18,9 @@ public class EsController {
     @Resource
     private EsService esService;
 
+    @Resource
+    private EsQueryService esQueryService;
+
     @PutMapping(value = "/insert")
     public void insertEs() {
         esService.insertBatch();
@@ -25,5 +29,10 @@ public class EsController {
     @DeleteMapping(value = "/delete")
     public void deleteEs() {
         esService.deleteByQuery();
+    }
+
+    @GetMapping(value = "/searchQuery")
+    public void searchQuery() {
+        esQueryService.searchQuery();
     }
 }

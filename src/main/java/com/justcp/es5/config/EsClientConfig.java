@@ -30,7 +30,7 @@ public class EsClientConfig {
     public TransportClient getTransportClient() throws Exception{
         Settings settings = Settings.builder()
                 .put("cluster.name", clusterName)
-                .put("client.transport.sniff", false)
+//                .put("client.transport.sniff", true)
                 .build();
         TransportClient client = new PreBuiltTransportClient(settings)
                 .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(esHostname), port));
